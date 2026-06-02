@@ -8,25 +8,25 @@
     <div class="controls">
         <input type="file" id="upload" accept="video/mp4">
         
-        <label for="filterSelect">CHOOSE FLITER</label>
-        <select id="filterSelect">
+        <label for="fillta">CHOOSE FLITER</label>
+        <select id="fillta">
             <option value="none">NONE</option>
             <option value="grayscale">GRAYSCALE</option>
             <option value="sepia">SEPIA</option>
             <option value="invert">INVERT</option>
             <option value="blur">BLUR</option>
         </select>
-        <button id="recordBtn" disabled>BEGIN PROCCESSING</button>
+        <button id="prosciutto" disabled>BEGIN PROCCESSING</button>
     </div>
-    <div class="progress-container" id="progressContainer">
-        <div class="progress-bar" id="progressBar">
-            <span class="progress-text" id="progressText">0%</span>
+    <div class="progresscontainer" id="pogc">
+        <div class="progressbar" id="pogb">
+            <span class="progresstext" id="pogt">0%</span>
         </div>
     </div>
-    <div class="video-container">
+    <div class="videocontainer">
         <div>
             <h3>INPUT</h3>
-            <video id="inputVideo" controls muted loop></video>
+            <video id="losvideo" controls muted loop></video>
         </div>
         <div>
             <h3>PREVIEW</h3>
@@ -35,5 +35,18 @@
     </div>
 </body>
 <script>
+    const uploadedfilet = document.getElementById('upload');
+    const inputvid = document.getElementById('losvideo');
+    const ineedtoenable = document.getElementById('prosciutto');
+    uploadedfilet.addEventListener('change', function(event) {
+    const filet = event.target.files[0]
+    if (filet) {
+        const blobs = URL.createObjectURL(filet);
+        inputvid.src = blobs
+        inputvid.load()
+        inputvid.play()
+        ineedtoenable.disabled = false;
+    }
+    });
 </script>
 </html>
