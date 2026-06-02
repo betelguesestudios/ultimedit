@@ -1,3 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <title>ULTIMEDIT</title>
 </head>
+<body>
+    <h2>ULTIMEDIT</h2>
+    <div class="controls">
+        <input type="file" id="upload" accept="video/mp4">
+        
+        <label for="filterSelect">CHOOSE FLITER</label>
+        <select id="filterSelect">
+            <option value="none">NONE</option>
+            <option value="grayscale">GRAYSCALE</option>
+            <option value="sepia">SEPIA</option>
+            <option value="invert">INVERT</option>
+            <option value="blur">BLUR</option>
+        </select>
+        <button id="recordBtn" disabled>BEGIN PROCCESSING</button>
+    </div>
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar">
+            <span class="progress-text" id="progressText">0%</span>
+        </div>
+    </div>
+    <div class="video-container">
+        <div>
+            <h3>INPUT</h3>
+            <video id="inputVideo" controls muted loop></video>
+        </div>
+        <div>
+            <h3>PREVIEW</h3>
+            <canvas id="outputCanvas"></canvas>
+        </div>
+    </div>
+</body>
+</html>
