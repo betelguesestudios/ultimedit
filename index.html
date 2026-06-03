@@ -35,28 +35,42 @@
     </div>
 </body>
 <script>
-    const uploadedfilet = document.getElementById('upload');
-    const inputvid = document.getElementById('losvideo');
-    const ineedtoenable = document.getElementById('prosciutto');
-    const canvascool = document.getElementById('canva')
-    const ctx = canvascool.getContext('2d', { 
-            willReadFrequently: true,
-            alpha: false 
-        });
-    const selectorator = document.getElementById('fillta')
-    uploadedfilet.addEventListener('change', function(event) {
-    const filet = event.target.files[0]
-    let animframid;
-    let mediarecord;
-    let recordedChunks = [];
-    let isProcessing = false;
-    let currentFilter = 'none';
-        selectorator.addEventListener('change', () => {
-        currentFilter = selectorator.value;
-    });
-    function render() {
-        if (!inputvid.paused && !inputvid.ended) {
-            if (canvascool.width !== inputvid.videoWidth || canvascool.height !== inputvid.videoHeight) {
+const uploadedfilet = document.getElementById('upload');
+const inputvid = document.getElementById('losvideo');
+const ineedtoenable = document.getElementById('prosciutto');
+const canvascool = document.getElementById('canva')
+const progressBar = document.getElementById('pogb')
+const progressText = document.getElementById('pogt')
+const baton = document.getElementById('prosciutto')
+const pogresscontainer = document.getElementById('pogc')
+const ctx = canvascool.getContext('2d', { 
+    willReadFrequently: true,
+    alpha: false 
+});
+const selectorator = document.getElementById('fillta')
+let animationFrameId;
+let mediarecord;
+let recordedChunks = [];
+let isProcessing = false;
+let currentFilter = 'none';
+function updateProgress(currentTime, duration) {
+    if (!duration) return;
+    const progress = Math.min((currentTime / duration) * 100, 100);
+    progressBar.style.width = `${progress}%`;
+    progressText.textContent = `${Math.round(progress)}%`;
+}
+selectorator.addEventListener('change', () => {
+    currentFilter = selectorator.value;
+});
+const TARGET_FPS = 30;
+const FRAME_INTERVAL = 1000 / TARGET_FPS;
+let lastFrameTime = 0;
+function render(timestamp) {
+    if (!inputvid.paused && !inputvid.ended) {
+        if (timestamp - lastFrameTime >= FRAME_INTERVAL) {
+            lastFrameTime = timestamp;
+            if (canvascool.width !== inputvid.videoWidth || 
+                canvascool.height !== inputvid.videoHeight) {
                 canvascool.width = inputvid.videoWidth;
                 canvascool.height = inputvid.videoHeight;
             }
@@ -66,35 +80,135 @@
                         currentFilter === 'blur' ? 'blur(5px)' : 'none';
             ctx.drawImage(inputvid, 0, 0, canvascool.width, canvascool.height);
         }
-        animationFrameId = requestAnimationFrame(render);
-        }
-    inputvid.addEventListener('play', () => {
-            render();
-    });
-        
-    inputvid.addEventListener('pause', () => {
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-        }
-    });
-    inputvid.addEventListener('ended', () => {
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-        }
-    });
-    function updateProgress(currentTime, duration) {
-        if (!duration) return;
-        const progress = Math.min((currentTime / duration) * 100, 100);
-        progressBar.style.width = `${progress}%`;
-        progressText.textContent = `${Math.round(progress)}%`;
     }
+    animationFrameId = requestAnimationFrame(render);
+}
+inputvid.addEventListener('play', () => {
+    lastFrameTime = 0; 
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+    }
+    animationFrameId = requestAnimationFrame(render);
+});
+inputvid.addEventListener('pause', () => {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+});
+inputvid.addEventListener('ended', () => {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+});
+function resetEverything() {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    if (mediarecord && mediarecord.state === 'recording') {
+        mediarecord.stop();
+    }
+    recordedChunks = [];
+    isProcessing = false;
+    lastFrameTime = 0;
+    inputvid.loop = false;
+    inputvid.pause();
+    inputvid.currentTime = 0;
+    baton.innerText = 'PROCESS';
+    baton.disabled = !inputvid.src; 
+    pogresscontainer.style.display = 'none';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+    ctx.clearRect(0, 0, canvascool.width, canvascool.height);
+}
+uploadedfilet.addEventListener('change', function(event) {
+    const filet = event.target.files[0];
     if (filet) {
+        resetEverything();
         const blobs = URL.createObjectURL(filet);
-        inputvid.src = blobs
-        inputvid.load()
-        inputvid.play()
-        ineedtoenable.disabled = false;
+        inputvid.src = blobs;
+        inputvid.load();
+        inputvid.onloadedmetadata = () => {
+            ineedtoenable.disabled = false;
+            baton.disabled = false;
+            baton.innerText = 'PROCESS';
+        };
+        inputvid.play();
     }
-    });
+});
+baton.addEventListener('click', async () => {
+    if (isProcessing || !inputvid.src) return;
+    isProcessing = true;
+    recordedChunks = [];
+    inputvid.loop = false;
+    inputvid.pause();
+    inputvid.currentTime = 0;
+    pogresscontainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+    baton.innerText = 'PROCESSING...';
+    baton.disabled = true;
+    try {
+        const stream = canvascool.captureStream(30);
+        const mimeType = 'video/webm;codecs=vp8';
+        mediarecord = new MediaRecorder(stream, {
+            mimeType: mimeType,
+            videoBitsPerSecond: 2500000
+        });
+        const duration = inputvid.duration;
+        const progressInterval = setInterval(() => {
+            updateProgress(inputvid.currentTime, duration);
+        }, 100);
+        mediarecord.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+        mediarecord.onstop = () => {
+            clearInterval(progressInterval);
+            updateProgress(duration, duration);
+            requestAnimationFrame(async () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' }); 
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'video.webm'; 
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                    resetEverything(); 
+                }, 1000);
+            });
+        };
+        mediarecord.onerror = (error) => {
+            console.error('MediaRecorder error:', error);
+            resetEverything();
+        };
+        mediarecord.start(100);
+        await inputvid.play();
+        const onEnded = () => {
+            inputvid.removeEventListener('ended', onEnded);
+            inputvid.removeEventListener('error', onError);
+            if (mediarecord && mediarecord.state === 'recording') {
+                mediarecord.stop();
+            }
+        };
+        const onError = () => {
+            inputvid.removeEventListener('ended', onEnded);
+            inputvid.removeEventListener('error', onError);
+            clearInterval(progressInterval);
+            resetEverything();
+        };
+        inputvid.addEventListener('ended', onEnded);
+        inputvid.addEventListener('error', onError);  
+    } catch (error) {
+        console.error('Processing error:', error);
+        resetEverything();
+    }
+});
 </script>
 </html>
