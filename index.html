@@ -30,7 +30,7 @@
         </div>
         <div>
             <h3>PREVIEW</h3>
-            <canvas id="outputCanvas"></canvas>
+            <canvas id="canva"></canvas>
         </div>
     </div>
 </body>
@@ -38,8 +38,56 @@
     const uploadedfilet = document.getElementById('upload');
     const inputvid = document.getElementById('losvideo');
     const ineedtoenable = document.getElementById('prosciutto');
+    const canvascool = document.getElementById('canva')
+    const ctx = canvascool.getContext('2d', { 
+            willReadFrequently: true,
+            alpha: false 
+        });
+    const selectorator = document.getElementById('fillta')
     uploadedfilet.addEventListener('change', function(event) {
     const filet = event.target.files[0]
+    let animframid;
+    let mediarecord;
+    let recordedChunks = [];
+    let isProcessing = false;
+    let currentFilter = 'none';
+        selectorator.addEventListener('change', () => {
+        currentFilter = selectorator.value;
+    });
+    function render() {
+        if (!inputvid.paused && !inputvid.ended) {
+            if (canvascool.width !== inputvid.videoWidth || canvascool.height !== inputvid.videoHeight) {
+                canvascool.width = inputvid.videoWidth;
+                canvascool.height = inputvid.videoHeight;
+            }
+            ctx.filter = currentFilter === 'grayscale' ? 'grayscale(100%)' :
+                        currentFilter === 'sepia' ? 'sepia(100%)' :
+                        currentFilter === 'invert' ? 'invert(100%)' :
+                        currentFilter === 'blur' ? 'blur(5px)' : 'none';
+            ctx.drawImage(inputvid, 0, 0, canvascool.width, canvascool.height);
+        }
+        animationFrameId = requestAnimationFrame(render);
+        }
+    inputvid.addEventListener('play', () => {
+            render();
+    });
+        
+    inputvid.addEventListener('pause', () => {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+    });
+    inputvid.addEventListener('ended', () => {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+    });
+    function updateProgress(currentTime, duration) {
+        if (!duration) return;
+        const progress = Math.min((currentTime / duration) * 100, 100);
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `${Math.round(progress)}%`;
+    }
     if (filet) {
         const blobs = URL.createObjectURL(filet);
         inputvid.src = blobs
